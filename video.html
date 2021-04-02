@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+    <title>SuperSampling test</title>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>
+<script src="./superResVideo.js"></script>
+<body>
+    video: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org
+    <video id="my-video" controls="true" width="480" height="300" crossorigin="anonymous">
+    <source src="http://jplayer.org/video/webm/Big_Buck_Bunny_Trailer.webm" type="video/webm">
+    <source src="http://jplayer.org/video/m4v/Big_Buck_Bunny_Trailer.m4v" type="video/mp4">
+    </video>
+    <canvas id="my-canvas" width="100" height="100"></canvas>
+    <input type="number" id="sizeinput" value=100>
+    <button onclick="changeSize()">Change size</button> 
+    <button onclick="processor.doLoad()">"Upscale"</button> 
+</body>
+
+
