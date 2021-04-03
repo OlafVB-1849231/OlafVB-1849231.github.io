@@ -1,4 +1,7 @@
 
+standardwidth = 128;
+standardheight = 72;
+
 class L1 {
 
     static className = 'L1';
@@ -15,67 +18,75 @@ function changeSize()
   let vid = document.getElementById("my-video");
   let c1 = document.getElementById("my-canvas");
 
-  vid.width = newsizeinput.value;
-  vid.height = newsizeinput.value;
-  c1.width = newsizeinput.value;
-  c1.height = newsizeinput.value;
+  vid.width = standardwidth * newsizeinput.value / 2 ;
+  vid.height = standardheight * newsizeinput.value / 2;
+  c1.width = standardwidth * newsizeinput.value;
+  c1.height = standardheight * newsizeinput.value;
+  width = standardwidth * newsizeinput.value;
+  height = standardheight *newsizeinput.value;
+  c2.width = standardwidth * newsizeinput.value;
+  c2.height = standardheight * newsizeinput.value;
 }
 
-var processor = {
-    timerCallback: function() {
-      if (this.video.paused || this.video.ended) {
-        return;
-      }
-      this.computeFrame()
-      var self = this;
-      setTimeout(function () {
-        self.timerCallback();
-      }, 32); // roughly 60 frames per second
-    },
+let video = document.getElementById("my-video");
+let c1 = document.getElementById("my-canvas");
+let c2 = document.getElementById("my-canvas2");
+let ctx1 = c1.getContext("2d");
+let model = null;
+tf.loadLayersModel("./model.json").then((value) => {model = value; console.log(model);});
+let width = c1.width;
+let height = c1.height;
+let date = new Date();
+let lastFrame = date.getTime();
+
+function computeFrame()
+{
+  ctx1.drawImage(video, 0, 0, width, height);
+  var frame = ctx1.getImageData(0, 0, width, height);
+
+  //console.log(tf.getBackend())
   
-    doLoad: async function() {
-      this.video = document.getElementById("my-video");
-      this.c1 = document.getElementById("my-canvas");
-      this.ctx1 = this.c1.getContext("2d");
-      this.model = await tf.loadLayersModel("./model.json")
-      var self = this;
+  //console.log("Lol")
+  //this.video.pause();
+  let framey = tf.browser.fromPixels(frame, 3);
+  framey = framey.mul(1/255)
+  let framey2 = framey.expandDims(0);
+  //console.log(framey2);
+  //console.log(framey2.dataSync()[0]);
+  //console.log(framey2.dataSync()[1000]);
   
-      this.video.addEventListener("play", function() {
-        self.width = self.video.width;
-        self.height = self.video.height;
-        self.timerCallback();
-      }, false);
-    },
-    computeFrame: function() {
-        this.ctx1.drawImage(this.video, 0, 0, this.width, this.height);
-        var frame = this.ctx1.getImageData(0, 0, this.width, this.height);
+  let prediction = model.predict(framey2);
+  //console.log("predicted")
+  //console.log(prediction)
+  //console.log(prediction.squeeze(0).dataSync()[0])
+  //console.log(prediction.squeeze(0).dataSync()[1000])
+  tf.browser.toPixels(prediction.squeeze(0).minimum(1.0), c2);
+  //console.log(tf.memory())
+  //video.pause();
+  prediction.dispose()
+  framey.dispose()
+  framey2.dispose()
+}
 
-        //console.log(tf.getBackend())
-        
-        //console.log("Lol")
-        //this.video.pause();
-        let framey = tf.browser.fromPixels(frame, 3);
-        framey = framey.mul(1/255)
-        let framey2 = framey.expandDims(0);
-        //console.log(framey2);
-        //console.log(framey2.dataSync()[0]);
-        //console.log(framey2.dataSync()[1000]);
-        
-        let prediction = this.model.predict(framey2);
-        //console.log("predicted")
-        //console.log(prediction)
-        //console.log(prediction.squeeze(0).dataSync()[0])
-        //console.log(prediction.squeeze(0).dataSync()[1000])
-        tf.browser.toPixels(prediction.squeeze(0).minimum(1.0), this.c1);
-        //console.log(tf.memory())
-        
-        prediction.dispose()
-        framey.dispose()
-        framey2.dispose()
+function timerCallback() {
+  if (video.paused || video.ended) {
+    return;
+  }
+  computeFrame();
+  let currentdata = new Date();
+  let currenttime = currentdata.getTime();
+  //console.log(currenttime)
+  console.log(1 / ((currenttime - lastFrame) / 1000));
+  lastFrame = currenttime
 
+  // setTimeout(function () {
+  //   self.timerCallback();
+  // }, 32); // roughly 60 frames per second
+  window.requestAnimationFrame(timerCallback);
+}
 
-    }
-};   
+video.addEventListener("play", function() {
+  timerCallback();
+}, false);
 
-
-
+changeSize();
