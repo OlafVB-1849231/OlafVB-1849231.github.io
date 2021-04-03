@@ -61,18 +61,15 @@ function computeFrame()
   //console.log(prediction.squeeze(0).dataSync()[0])
   //console.log(prediction.squeeze(0).dataSync()[1000])
   tf.browser.toPixels(prediction.squeeze(0).minimum(1.0), c2);
-  //console.log(tf.memory())
+  console.log(tf.memory())
   //video.pause();
-  prediction.dispose()
-  framey.dispose()
-  framey2.dispose()
 }
 
 function timerCallback() {
   if (video.paused || video.ended) {
     return;
   }
-  computeFrame();
+  tf.tidy(computeFrame);
   let currentdata = new Date();
   let currenttime = currentdata.getTime();
   //console.log(currenttime)
