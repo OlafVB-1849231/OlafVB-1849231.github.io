@@ -7,12 +7,13 @@
     video: (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org
     <video id="my-video" controls="true" width="160" height="90" crossorigin="anonymous">
     <!--<source src="http://jplayer.org/video/webm/Big_Buck_Bunny_Trailer.webm" type="video/webm">-->
-    <source src="./Big_Buck_Bunny_Trailerdown.m4v" type="video/mp4">
+    <source src="./Big_Buck_Bunny_Trailer.webm" type="video/mp4">
+    <!---<source src="./Big_Buck_Bunny_Trailerdown.m4v" type="video/mp4">-->
     </video>
     <canvas id="my-canvas" width="160" height="90"></canvas>
     <canvas id="my-canvas2" width="160" height="90"></canvas>
     <input type="number" id="sizeinput" value=1>
-    <button onclick="changeSize()">Scale</button> 
+    <button disabled onclick="changeSize()">Scale</button> 
 </body>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>

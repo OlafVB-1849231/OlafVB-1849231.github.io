@@ -1,7 +1,7 @@
 var colorconverter = colorconv
-
-standardwidth = 128;
-standardheight = 72;
+tf.enableProdMode();
+standardwidth = 640;
+standardheight = 360;
 
 class L1 {
 
@@ -80,52 +80,55 @@ let lastFrame = date.getTime();
 
 function computeFrame()
 {
-  ctx1.drawImage(video, 0, 0, width, height);
-  var frame = ctx1.getImageData(0, 0, width, height);
+  //ctx1.drawImage(video, 0, 0, width, height);
+  //var frame = ctx1.getImageData(0, 0, width, height);
 
-  //console.log(tf.getBackend())
+  let framey = tf.browser.fromPixels(video, 3);
   
-  //console.log("Lol")
-  //this.video.pause();
-  let framey = tf.browser.fromPixels(frame, 3);
-  let convert = framey.arraySync();
+  //let convert = framey.arraySync();
+  // var i;
+  // for (i = 0; i < convert.length; i++) {
+  //   var j;
+  //   for (j=0; j < convert[i].length; j++)
+  //   {
+  //     convert[i][j] = colorconverter.RGB2YUV(convert[i][j]);
+  //   }
+  // } 
+  //framey = tf.tensor3d(convert, framey.shape)
 
-  var i;
-  for (i = 0; i < convert.length; i++) {
-    var j;
-    for (j=0; j < convert[i].length; j++)
-    {
-      convert[i][j] = colorconverter.RGB2YUV(convert[i][j]);
-    }
-  } 
-
-  framey = tf.tensor3d(convert, framey.shape)
   let [y, u, v] = tf.split(framey, 3, 2);
 
   y = y.mul(1/255)
   y = y.expandDims(0);
   
+  let currentdata = new Date();
+  let lastFrame = currentdata.getTime();
   let prediction = model.predict(y);
+  currentdata = new Date();
+  let currenttime = currentdata.getTime();
+  console.log("prediction fps:")
+  console.log(1 / ((currenttime - lastFrame) / 1000))
+
   prediction = prediction.squeeze(0);
-  framey = tf.image.resizeBilinear(convert, [prediction.shape[0], prediction.shape[1]]);
+  framey = tf.image.resizeBilinear(framey, [prediction.shape[0], prediction.shape[1]]);
   framey = framey.slice([0,0,1]);
   prediction = prediction.mul(255);
   framey = prediction.concat(framey, 2);
-  convert = framey.arraySync();
-  for (i = 0; i < convert.length; i++) {
-    var j;
-    for (j=0; j < convert[i].length; j++)
-    {
-      convert[i][j] = colorconverter.YUV2RGB(convert[i][j]);
-    }
-  } 
+  
+  //convert = framey.arraySync(); 
+  // for (i = 0; i < convert.length; i++) {
+  //   var j;
+  //   for (j=0; j < convert[i].length; j++)
+  //   {
+  //     convert[i][j] = colorconverter.YUV2RGB(convert[i][j]);
+  //   }
+  // } 
+  //framey = tf.tensor3d(convert, framey.shape)
 
-  framey = tf.tensor3d(convert, framey.shape)
   framey = tf.cast(framey, "int32")
   framey = tf.clipByValue(framey, 0, 255)
   tf.browser.toPixels(framey, c2);
   console.log(tf.memory())
-  //video.pause();
 }
 
 function timerCallback() {
@@ -136,6 +139,7 @@ function timerCallback() {
   let currentdata = new Date();
   let currenttime = currentdata.getTime();
   //console.log(currenttime)
+  console.log("total fps:")
   console.log(1 / ((currenttime - lastFrame) / 1000));
   lastFrame = currenttime
 
