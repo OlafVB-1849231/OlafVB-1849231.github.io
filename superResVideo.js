@@ -1,3 +1,4 @@
+var colorconverter = colorconv
 
 standardwidth = 128;
 standardheight = 72;
@@ -10,7 +11,45 @@ class L1 {
        return tf.regularizers.l1l2(config)
     }
 }
+
+
+
+
+const SCALE = 2;
+
+const isTensorArray = (inputs) => {
+  return Array.isArray(inputs);
+};
+
+const getInput = (inputs) => {
+  if (isTensorArray(inputs)) {
+    return inputs[0];
+  }
+  return inputs;
+};
+
+
+class PixelShuffle extends tf.layers.Layer {
+  scale;
+
+  constructor() {
+    super({});
+    this.scale = SCALE;
+  }
+
+  computeOutputShape(inputShape) {
+    return [inputShape[0], inputShape[1], inputShape[2], 3];
+  }
+
+  call(inputs) {
+    return tf.depthToSpace(getInput(inputs), this.scale, 'NHWC');
+  }
+
+  static className = 'PixelShuffle';
+}
+
 tf.serialization.registerClass(L1);
+tf.serialization.registerClass(PixelShuffle)
 
 function changeSize()
 {
@@ -18,14 +57,14 @@ function changeSize()
   let vid = document.getElementById("my-video");
   let c1 = document.getElementById("my-canvas");
 
-  vid.width = standardwidth * newsizeinput.value / 2 ;
-  vid.height = standardheight * newsizeinput.value / 2;
+  vid.width = standardwidth * newsizeinput.value;
+  vid.height = standardheight * newsizeinput.value;
   c1.width = standardwidth * newsizeinput.value;
   c1.height = standardheight * newsizeinput.value;
   width = standardwidth * newsizeinput.value;
   height = standardheight *newsizeinput.value;
-  c2.width = standardwidth * newsizeinput.value;
-  c2.height = standardheight * newsizeinput.value;
+  c2.width = standardwidth * newsizeinput.value * 2;
+  c2.height = standardheight * newsizeinput.value * 2;
 }
 
 let video = document.getElementById("my-video");
@@ -49,18 +88,42 @@ function computeFrame()
   //console.log("Lol")
   //this.video.pause();
   let framey = tf.browser.fromPixels(frame, 3);
-  framey = framey.mul(1/255)
-  let framey2 = framey.expandDims(0);
-  //console.log(framey2);
-  //console.log(framey2.dataSync()[0]);
-  //console.log(framey2.dataSync()[1000]);
+  let convert = framey.arraySync();
+
+  var i;
+  for (i = 0; i < convert.length; i++) {
+    var j;
+    for (j=0; j < convert[i].length; j++)
+    {
+      convert[i][j] = colorconverter.RGB2YUV(convert[i][j]);
+    }
+  } 
+
+  framey = tf.tensor3d(convert, framey.shape)
+  let [y, u, v] = tf.split(framey, 3, 2);
+
+  y = y.mul(1/255)
+  y = y.expandDims(0);
   
-  let prediction = model.predict(framey2);
-  //console.log("predicted")
-  //console.log(prediction)
-  //console.log(prediction.squeeze(0).dataSync()[0])
-  //console.log(prediction.squeeze(0).dataSync()[1000])
-  tf.browser.toPixels(prediction.squeeze(0).minimum(1.0), c2);
+  let prediction = model.predict(y);
+  prediction = prediction.squeeze(0);
+  framey = tf.image.resizeBilinear(convert, [prediction.shape[0], prediction.shape[1]]);
+  framey = framey.slice([0,0,1]);
+  prediction = prediction.mul(255);
+  framey = prediction.concat(framey, 2);
+  convert = framey.arraySync();
+  for (i = 0; i < convert.length; i++) {
+    var j;
+    for (j=0; j < convert[i].length; j++)
+    {
+      convert[i][j] = colorconverter.YUV2RGB(convert[i][j]);
+    }
+  } 
+
+  framey = tf.tensor3d(convert, framey.shape)
+  framey = tf.cast(framey, "int32")
+  framey = tf.clipByValue(framey, 0, 255)
+  tf.browser.toPixels(framey, c2);
   console.log(tf.memory())
   //video.pause();
 }
